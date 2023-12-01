@@ -1,8 +1,13 @@
 <img src="./.assets/christmas_ferris.png" width="164">
 
-# 🎄 Advent of Code {year}
+# 🎄 Advent of Code 2023
+
+Maybe I'll get it done this year?
 
 Solutions for [Advent of Code](https://adventofcode.com/) in [Rust](https://www.rust-lang.org/).
+
+Using the template from https://github.com/fspoettel/advent-of-code-rust,
+cleaned up and modified to work with Nix.
 
 <!--- advent_readme_stars table --->
 
@@ -10,22 +15,11 @@ Solutions for [Advent of Code](https://adventofcode.com/) in [Rust](https://www.
 
 ---
 
-## Template setup
+## Setup
 
-This template supports all major OS (macOS, Linux, Windows).
-
-### Create your repository 📝
-
-1.  Open [the template repository](https://github.com/fspoettel/advent-of-code-rust) on Github.
-2.  Click [Use this template](https://github.com/fspoettel/advent-of-code-rust/generate) and create your repository.
-3.  Clone your repository to your computer.
-4.  If you are solving a previous year's advent of code, change the `AOC_YEAR` variable in `.cargo/config.toml` to reflect the year you are solving.
-
-### Setup rust 💻
-
-1.  Install the [Rust toolchain](https://www.rust-lang.org/tools/install).
-2.  (recommended) Install the [rust-analyzer](https://rust-analyzer.github.io/manual.html) extension for your code editor.
-3.  (optional) Install a native debugger. If you are using VS Code, [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb) is a good option.
+```sh
+nix develop
+```
 
 ---
 
