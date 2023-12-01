@@ -21,6 +21,8 @@
             rustfmt
             pre-commit
             rustPackages.clippy
+            rust-analyzer
+            aoc-cli
           ];
           RUST_SRC_PATH = rustPlatform.rustLibSrc;
         };
