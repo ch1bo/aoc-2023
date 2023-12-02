@@ -62,8 +62,17 @@ impl FromStr for Draw {
 
 pub fn part_one(input: &str) -> Option<u32> {
     let games: Vec<Game> = input.lines().map(|l| l.parse::<Game>()).flatten().collect();
-    println!("{games:?}");
-    None
+    let x = games
+        .into_iter()
+        .filter(|g| {
+            g.draws
+                .iter()
+                .all(|d| d.red <= 12 && d.green <= 13 && d.blue <= 14)
+        })
+        .map(|g| g.id)
+        .sum();
+    // TODO: pure in rust?
+    Some(x)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
@@ -77,7 +86,7 @@ mod tests {
     #[test]
     fn test_part_one() {
         let result = part_one(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, Some(1));
+        assert_eq!(result, Some(8));
     }
 
     #[test]
