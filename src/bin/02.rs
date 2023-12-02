@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, str::FromStr};
+use std::{cmp::max, str::FromStr};
 
 advent_of_code::solution!(2);
 
@@ -60,9 +60,12 @@ impl FromStr for Draw {
     }
 }
 
+fn parse_games(input: &str) -> Vec<Game> {
+    input.lines().map(|l| l.parse::<Game>()).flatten().collect()
+}
+
 pub fn part_one(input: &str) -> Option<u32> {
-    let games: Vec<Game> = input.lines().map(|l| l.parse::<Game>()).flatten().collect();
-    let x = games
+    let sum = parse_games(input)
         .into_iter()
         .filter(|g| {
             g.draws
@@ -71,12 +74,24 @@ pub fn part_one(input: &str) -> Option<u32> {
         })
         .map(|g| g.id)
         .sum();
-    // TODO: pure in rust?
-    Some(x)
+    Some(sum)
+}
+
+fn min_cubes(game: &Game) -> (u32, u32, u32) {
+    game.draws.iter().fold((0, 0, 0), |(r, g, b), draw| {
+        (max(draw.red, r), max(draw.green, g), max(draw.blue, b))
+    })
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    None
+    let sum = parse_games(input)
+        .iter()
+        .map(|game| {
+            let (r, g, b) = min_cubes(game);
+            r * g * b
+        })
+        .sum();
+    Some(sum)
 }
 
 #[cfg(test)]
