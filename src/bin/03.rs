@@ -1,7 +1,4 @@
-use std::{
-    cmp::{max, min},
-    str::FromStr,
-};
+use std::cmp::{max, min};
 
 use advent_of_code::ParseError;
 
@@ -11,86 +8,88 @@ advent_of_code::solution!(3);
 struct Plan {
     rows: Vec<Vec<char>>,
     parts: Vec<Part>,
+    symbols: Vec<Symbol>,
 }
 
 #[derive(Debug)]
 struct Part {
     number: u32,
-    pos: Pos,
+    row: usize,
+    start: usize,
+    end: usize,
 }
 
-impl FromStr for Part {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let number = s.parse().map_err(|_| ParseError)?;
-        Ok(Part {
-            number,
-            pos: (0, 0),
-        })
-    }
+#[derive(Debug)]
+struct Symbol {
+    symbol: char,
+    row: usize,
+    col: usize,
 }
 
 type Pos = (usize, usize);
 
-impl FromStr for Plan {
-    type Err = ParseError;
+fn parse_plan(input: &str) -> Result<Plan, ParseError> {
+    let rows = input.lines().map(|l| l.chars().collect()).collect();
+    let mut parts = Vec::new();
+    let mut symbols = Vec::new();
+    for (y, r) in input.lines().enumerate() {
+        let mut part_cur: Option<(usize, String)> = None;
+        for (x, c) in r.char_indices() {
+            match part_cur {
+                Some((start, ref mut content)) => {
+                    if c.is_digit(10) {
+                        content.push(c);
+                    } else {
+                        let number = content.parse().map_err(|_| ParseError)?;
+                        parts.push(Part {
+                            number,
+                            row: y,
+                            start,
+                            end: x,
+                        });
+                    }
+                    continue;
+                }
+                None if c.is_digit(10) => {
+                    part_cur = Some((x, String::from(c)));
+                    continue;
+                }
+                _ => {}
+            }
 
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let rows = input.lines().map(|l| l.chars().collect()).collect();
-        let parts: Vec<Part> = input
-            .lines()
-            .map(|l| {
-                let chars_it = l.chars();
-
-                let part_str: String = chars_it
-                    .skip_while(|c| *c == '.')
-                    .take_while(|c| *c != '.')
-                    .collect();
-                part_str.parse::<Part>()
-            })
-            .flatten()
-            .collect();
-        Ok(Plan { rows, parts })
+            if c == '.' {
+                continue;
+            } else {
+                // symbol
+                symbols.push(Symbol {
+                    symbol: c,
+                    row: y,
+                    col: x,
+                });
+            }
+        }
     }
+    Ok(Plan {
+        rows,
+        parts,
+        symbols,
+    })
 }
 
-fn symbols(plan: &Plan) -> Vec<Pos> {
-    plan.rows
-        .iter()
-        .enumerate()
-        .filter_map(|(y, row)| {
-            Some(
-                row.iter()
-                    .enumerate()
-                    .filter_map(|(x, cell)| {
-                        if cell.is_digit(10) || *cell == '.' {
-                            None
-                        } else {
-                            Some((y, x))
-                        }
-                    })
-                    .collect::<Vec<Pos>>(),
-            )
-        })
-        .flatten()
-        .collect()
-}
-
-fn rows(plan: &Plan) -> usize {
+fn row_length(plan: &Plan) -> usize {
     plan.rows.len()
 }
 
-fn cols(plan: &Plan) -> usize {
+fn col_length(plan: &Plan) -> usize {
     plan.rows.iter().map(|r| r.len()).max().unwrap_or_default()
 }
 
 fn adjacent(plan: &Plan, pos: &Pos) -> Vec<Pos> {
     let (y, x) = pos;
     let row_above = max(y - 1, 0);
-    let row_below = min(y + 1, rows(plan));
+    let row_below = min(y + 1, row_length(plan));
     let col_left = max(x - 1, 0);
-    let col_right = min(x + 1, cols(plan));
+    let col_right = min(x + 1, col_length(plan));
     vec![
         (row_above, col_left),
         (row_above, *x),
@@ -104,12 +103,10 @@ fn adjacent(plan: &Plan, pos: &Pos) -> Vec<Pos> {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let plan = input.parse().ok()?;
+    let plan = parse_plan(input).ok();
     println!("{plan:?}");
-    let s = symbols(&plan);
-    println!("{s:?}");
-    let test: Vec<Vec<Pos>> = s.iter().map(|x| adjacent(&plan, x)).collect();
-    println!("{test:?}");
+    // let test: Vec<Vec<Pos>> = s.iter().map(|x| adjacent(&plan, x)).collect();
+    // println!("{test:?}");
     None
 }
 
