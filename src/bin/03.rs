@@ -1,17 +1,63 @@
-use std::cmp::{max, min};
+use std::{
+    cmp::{max, min},
+    str::FromStr,
+};
+
+use advent_of_code::ParseError;
 
 advent_of_code::solution!(3);
 
-type Plan = Vec<Vec<char>>;
+#[derive(Debug)]
+struct Plan {
+    rows: Vec<Vec<char>>,
+    parts: Vec<Part>,
+}
+
+#[derive(Debug)]
+struct Part {
+    number: u32,
+    pos: Pos,
+}
+
+impl FromStr for Part {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let number = s.parse().map_err(|_| ParseError)?;
+        Ok(Part {
+            number,
+            pos: (0, 0),
+        })
+    }
+}
 
 type Pos = (usize, usize);
 
-fn parse_plan(input: &str) -> Plan {
-    input.lines().map(|l| l.chars().collect()).collect()
+impl FromStr for Plan {
+    type Err = ParseError;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        let rows = input.lines().map(|l| l.chars().collect()).collect();
+        let parts: Vec<Part> = input
+            .lines()
+            .map(|l| {
+                let chars_it = l.chars();
+
+                let part_str: String = chars_it
+                    .skip_while(|c| *c == '.')
+                    .take_while(|c| *c != '.')
+                    .collect();
+                part_str.parse::<Part>()
+            })
+            .flatten()
+            .collect();
+        Ok(Plan { rows, parts })
+    }
 }
 
 fn symbols(plan: &Plan) -> Vec<Pos> {
-    plan.iter()
+    plan.rows
+        .iter()
         .enumerate()
         .filter_map(|(y, row)| {
             Some(
@@ -32,11 +78,11 @@ fn symbols(plan: &Plan) -> Vec<Pos> {
 }
 
 fn rows(plan: &Plan) -> usize {
-    plan.len()
+    plan.rows.len()
 }
 
 fn cols(plan: &Plan) -> usize {
-    plan.iter().map(|r| r.len()).max().unwrap_or_default()
+    plan.rows.iter().map(|r| r.len()).max().unwrap_or_default()
 }
 
 fn adjacent(plan: &Plan, pos: &Pos) -> Vec<Pos> {
@@ -58,7 +104,7 @@ fn adjacent(plan: &Plan, pos: &Pos) -> Vec<Pos> {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let plan = parse_plan(input);
+    let plan = input.parse().ok()?;
     println!("{plan:?}");
     let s = symbols(&plan);
     println!("{s:?}");

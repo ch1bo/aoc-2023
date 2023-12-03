@@ -1,9 +1,8 @@
 use std::{cmp::max, str::FromStr};
 
-advent_of_code::solution!(2);
+use advent_of_code::ParseError;
 
-#[derive(Debug, PartialEq, Eq)]
-struct ParseError;
+advent_of_code::solution!(2);
 
 #[derive(Debug)]
 struct Game {
