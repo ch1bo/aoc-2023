@@ -1,12 +1,9 @@
-use std::cmp::{max, min};
-
 use advent_of_code::ParseError;
 
 advent_of_code::solution!(3);
 
 #[derive(Debug)]
 struct Plan {
-    rows: Vec<Vec<char>>,
     parts: Vec<Part>,
     symbols: Vec<Symbol>,
 }
@@ -36,8 +33,27 @@ struct Symbol {
     col: usize,
 }
 
+impl Symbol {
+    fn gear_ratio(self: &Self, parts: &Vec<Part>) -> Option<u32> {
+        if self.symbol != '*' {
+            return None;
+        }
+
+        let adjacent_parts: Vec<&Part> = parts
+            .iter()
+            .filter(|p| (p.row.saturating_sub(1)..=p.row.saturating_add(1)).contains(&self.row))
+            .filter(|p| (p.start.saturating_sub(1)..=p.end.saturating_add(1)).contains(&self.col))
+            .collect();
+
+        if adjacent_parts.len() != 2 {
+            return None;
+        }
+
+        Some(adjacent_parts.iter().map(|p| p.number).product())
+    }
+}
+
 fn parse_plan(input: &str) -> Result<Plan, ParseError> {
-    let rows = input.lines().map(|l| l.chars().collect()).collect();
     let mut parts = Vec::new();
     let mut symbols = Vec::new();
     for (y, r) in input.lines().enumerate() {
@@ -90,28 +106,29 @@ fn parse_plan(input: &str) -> Result<Plan, ParseError> {
             }
         }
     }
-    Ok(Plan {
-        rows,
-        parts,
-        symbols,
-    })
+    Ok(Plan { parts, symbols })
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
     let plan = parse_plan(input).ok()?;
-    println!("{plan:?}");
     let parts: Vec<Part> = plan
         .parts
         .into_iter()
         .filter(|p| p.is_adjacent_to_symbol(&plan.symbols))
         .collect();
-    println!("{parts:?}");
     let sum = parts.iter().map(|p| p.number).sum();
     Some(sum)
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<u32> {
+    let plan = parse_plan(input).ok()?;
+    let gear_ratios: Vec<u32> = plan
+        .symbols
+        .into_iter()
+        .map(|s| s.gear_ratio(&plan.parts))
+        .flatten()
+        .collect();
+    Some(gear_ratios.iter().sum())
 }
 
 #[cfg(test)]
@@ -127,6 +144,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(467835));
     }
 }
