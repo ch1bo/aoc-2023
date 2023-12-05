@@ -2,7 +2,7 @@ advent_of_code::solution!(5);
 
 fn map(dst_start: u32, src_start: u32, len: u32) -> impl Fn(u32) -> Option<u32> {
     move |x| {
-        if x > src_start && x < src_start + len {
+        if x >= src_start && x < src_start + len {
             Some(dst_start + (x - src_start))
         } else {
             None
@@ -51,17 +51,39 @@ pub fn part_one(input: &str) -> Option<u32> {
             .collect(),
     );
 
+    seeds.iter().map(|x| full_map(*x)).min()
+}
+
+pub fn part_two(input: &str) -> Option<u32> {
+    let (seed_line, rest) = input.split_once("\n\n")?;
+
+    let mut seeds = Vec::new();
+    let mut seed_it = seed_line.strip_prefix("seeds: ")?.split(' ');
+    while let Some(start) = seed_it.next() {
+        let start = start.parse::<u32>().ok()?;
+        let len = seed_it.next()?.parse::<u32>().ok()?;
+        for i in start..(start + len) {
+            seeds.push(i);
+        }
+    }
+    let total = seeds.len();
+
+    let full_map = compose_all(
+        rest.split("\n\n")
+            .map(|block| parse_map(block).unwrap())
+            .collect(),
+    );
+
     seeds
         .iter()
-        .map(|x| {
-            println!("Seed {x}");
+        .enumerate()
+        .map(|(ix, x)| {
+            if ix % 1000000 == 0 {
+                println!("{ix}/{total}");
+            }
             full_map(*x)
         })
         .min()
-}
-
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
 }
 
 #[cfg(test)]
@@ -77,6 +99,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(46));
     }
 }
