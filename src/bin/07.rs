@@ -1,10 +1,10 @@
-use std::{fmt::Display, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
 use advent_of_code::ParseError;
 
 advent_of_code::solution!(7);
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 struct Card {
     value: u32,
 }
@@ -31,8 +31,47 @@ impl std::fmt::Debug for Card {
     }
 }
 
+#[derive(Debug, PartialEq, PartialOrd)]
+enum HandType {
+    HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    FiveOfAKind,
+}
+
 struct Hand {
     cards: Vec<Card>,
+}
+
+impl Hand {
+    fn get_type(&self) -> HandType {
+        let mut histogram = HashMap::new();
+        for c in self.cards.iter() {
+            histogram
+                .entry(c)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        }
+        let max_card = histogram.iter().max_by_key(|(_k, v)| *v);
+        match max_card {
+            Some((_, 5)) => HandType::FiveOfAKind,
+            Some((_, 4)) => HandType::FourOfAKind,
+            Some((card, 3)) => match histogram.iter().find(|(c, q)| *c != card && **q == 2) {
+                Some((_, 2)) => HandType::FullHouse,
+                _ => HandType::ThreeOfAKind,
+            },
+            Some((card, 2)) => match histogram.iter().find(|(c, q)| *c != card && **q == 2) {
+                Some((_, 2)) => HandType::TwoPair,
+                _ => HandType::OnePair,
+            },
+            Some((_, 1)) => HandType::HighCard,
+            Some((_, _)) => panic!("too many equal cards"),
+            None => panic!("empty vector!"),
+        }
+    }
 }
 
 impl std::fmt::Debug for Hand {
@@ -50,7 +89,12 @@ impl PartialEq for Hand {
 
 impl PartialOrd for Hand {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.cards.partial_cmp(&other.cards)
+        let a = self.get_type();
+        let b = other.get_type();
+        match a.partial_cmp(&b) {
+            Some(std::cmp::Ordering::Equal) => self.cards.partial_cmp(&other.cards),
+            res => res,
+        }
     }
 }
 
@@ -105,10 +149,14 @@ fn parse(input: &str) -> Vec<(Hand, Bid)> {
 
 pub fn part_one(input: &str) -> Option<u32> {
     let mut games = parse(input);
-    println!("parsed: {games:?}");
     games.sort_unstable_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
-    println!("sorted: {games:?}");
-    None
+    Some(
+        games
+            .iter()
+            .enumerate()
+            .map(|(ix, (_, bid))| (ix as u32 + 1) * bid)
+            .sum(),
+    )
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
