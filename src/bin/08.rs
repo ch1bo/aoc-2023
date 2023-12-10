@@ -89,22 +89,33 @@ fn find_starts(network: &Network) -> Vec<&Node> {
         .collect()
 }
 
-pub fn part_two(input: &str) -> Option<u32> {
+pub fn part_two(input: &str) -> Option<u64> {
     let (ins, network) = parse(input);
-    let mut curs = find_starts(&network);
-    println!("{curs:?}");
-    let mut it = ins.iter().cycle();
-    let mut count = 0;
-    while let Some(step) = it.next() {
-        count += 1;
-        let nexts = curs.iter().map(|n| navigate_step(&network, step, n));
-        // TODO: why clone needed? why mut on all?
-        if nexts.clone().all(|n| n.ends_with("Z")) {
-            return Some(count);
+    let starts = find_starts(&network);
+    println!("{starts:?}");
+    let mut counts = Vec::new();
+    for start in starts.iter() {
+        let mut cur = *start;
+        println!("start: {cur}");
+        let mut count = 0;
+        let mut it = ins.iter().cycle();
+        while let Some(step) = it.next() {
+            count += 1;
+            let next = navigate_step(&network, step, cur);
+            if next.ends_with("Z") {
+                break;
+            }
+            cur = next;
         }
-        curs = nexts.collect();
+        println!("found: {count}");
+        counts.push(count);
     }
-    None
+    // Find lcm over multiple counts
+    let mut multiple = *counts.first()?;
+    for c in counts.iter() {
+        multiple = num::integer::lcm(multiple, *c);
+    }
+    Some(multiple)
 }
 
 #[cfg(test)]
