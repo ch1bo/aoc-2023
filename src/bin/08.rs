@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::Cycle};
+use std::collections::HashMap;
 
 advent_of_code::solution!(8);
 
@@ -55,29 +55,55 @@ pub fn part_one(input: &str) -> Option<u32> {
     let (ins, network) = parse(input);
     println!("{ins:?}");
     println!("{network:?}");
-    Some(navigate(&network, ins.iter().cycle(), &String::from("AAA")))
+    let mut it = ins.iter().cycle();
+    let mut count = 0;
+    let mut cur = &String::from("AAA");
+    while let Some(step) = it.next() {
+        let next = navigate_step(&network, step, &cur);
+        count += 1;
+        if next == "ZZZ" {
+            return Some(count);
+        }
+        cur = next;
+    }
+    None
 }
 
-fn navigate<'a, I: Iterator<Item = &'a Step>>(
-    network: &Network,
-    mut instructions: I,
-    cur: &Node,
-) -> u32 {
-    if cur == "ZZZ" {
-        return 0;
-    }
+fn navigate_step<'a>(network: &'a Network, step: &'a Step, cur: &'a Node) -> &'a Node {
     let (l, r) = match network.nodes.get(cur) {
-        None => return 0,
+        None => panic!("not found: {}", cur),
         Some(x) => x,
     };
-    match instructions.next() {
-        None => return 0,
-        Some(Step::L) => 1 + navigate(network, instructions, l),
-        Some(Step::R) => 1 + navigate(network, instructions, r),
+    match step {
+        Step::L => l,
+        Step::R => r,
     }
+}
+
+fn find_starts(network: &Network) -> Vec<&Node> {
+    network
+        .nodes
+        .keys()
+        .clone()
+        .filter(|n| n.ends_with("A"))
+        .collect()
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
+    let (ins, network) = parse(input);
+    let mut curs = find_starts(&network);
+    println!("{curs:?}");
+    let mut it = ins.iter().cycle();
+    let mut count = 0;
+    while let Some(step) = it.next() {
+        count += 1;
+        let nexts = curs.iter().map(|n| navigate_step(&network, step, n));
+        // TODO: why clone needed? why mut on all?
+        if nexts.clone().all(|n| n.ends_with("Z")) {
+            return Some(count);
+        }
+        curs = nexts.collect();
+    }
     None
 }
 
@@ -107,7 +133,17 @@ ZZZ = (ZZZ, ZZZ)";
 
     #[test]
     fn test_part_two() {
-        let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        let input = "LR
+
+11A = (11B, XXX)
+11B = (XXX, 11Z)
+11Z = (11B, XXX)
+22A = (22B, XXX)
+22B = (22C, 22C)
+22C = (22Z, 22Z)
+22Z = (22B, 22B)
+XXX = (XXX, XXX)";
+        let result = part_two(&input);
+        assert_eq!(result, Some(6));
     }
 }
