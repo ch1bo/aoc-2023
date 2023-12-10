@@ -1,40 +1,10 @@
-use std::{cmp::Ordering, collections::HashMap, str::FromStr};
-
-use advent_of_code::ParseError;
+use std::{cmp::Ordering, collections::HashMap};
 
 advent_of_code::solution!(7);
 
 type Card = char;
 
-// #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
-// struct Card {
-//     value: u32,
-// }
-
-// impl std::fmt::Debug for Card {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let s = match self.value {
-//             14 => "A",
-//             13 => "K",
-//             12 => "Q",
-//             10 => "T",
-//             9 => "9",
-//             8 => "8",
-//             7 => "7",
-//             6 => "6",
-//             5 => "5",
-//             4 => "4",
-//             3 => "3",
-//             2 => "2",
-//             1 => "J", // TODO: combine part1/2
-//             _ => panic!("unexpected vard value {}", self.value),
-//         };
-//         write!(f, "{}", s)
-//     }
-// }
-
-fn fold_cmp_card(acc: Ordering, (a, b): (&Card, &Card)) -> Ordering {
-    let order = "J23456789TQKA";
+fn fold_cmp_card(order: &str, acc: Ordering, (a, b): (&Card, &Card)) -> Ordering {
     match acc {
         Ordering::Less => Ordering::Less,
         Ordering::Greater => Ordering::Greater,
@@ -57,95 +27,63 @@ enum HandType {
     FiveOfAKind,
 }
 
+#[derive(Debug)]
 struct Hand {
     cards: Vec<Card>,
 }
 
-impl Hand {
-    fn get_type(&self) -> HandType {
-        println!("{:?}", self.cards);
-        let mut histogram = HashMap::new();
-        for c in self.cards.iter() {
-            if *c == 'J' {
-                continue;
-            }
-            histogram
-                .entry(c)
-                .and_modify(|count| *count += 1)
-                .or_insert(1);
+fn get_type(hand: &Hand, with_joker: bool) -> HandType {
+    let mut histogram = HashMap::new();
+    for c in hand.cards.iter() {
+        if with_joker && *c == 'J' {
+            continue;
         }
-        // Joker of part 2
-        let max_card = histogram.clone().into_iter().max_by_key(|(_k, v)| *v);
-
-        match max_card {
-            None => {
-                // all jokers
-                return HandType::FiveOfAKind;
+        histogram
+            .entry(c)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
+    }
+    match histogram.clone().into_iter().max_by_key(|(_k, v)| *v) {
+        None => {
+            // all jokers
+            return HandType::FiveOfAKind;
+        }
+        Some(mut max_card) => {
+            if with_joker {
+                let number_of_jokers = hand.cards.iter().filter(|c| **c == 'J').count();
+                max_card.1 += number_of_jokers;
             }
-            Some(max_card) => {
-                println!("{max_card:?}");
 
-                // Joker of part 2
-                let number_of_jokers = self.cards.iter().filter(|c| **c == 'J').count();
-                println!("{number_of_jokers:?}");
-                let max_card = (max_card.0, max_card.1 + number_of_jokers);
-                println!("{max_card:?}");
-
-                match max_card {
-                    (_, 5) => HandType::FiveOfAKind,
-                    (_, 4) => HandType::FourOfAKind,
-                    (card, 3) => match histogram.iter().find(|(c, q)| **c != card && **q == 2) {
-                        Some((_, 2)) => HandType::FullHouse,
-                        _ => HandType::ThreeOfAKind,
-                    },
-                    (card, 2) => match histogram.iter().find(|(c, q)| **c != card && **q == 2) {
-                        Some((_, 2)) => HandType::TwoPair,
-                        _ => HandType::OnePair,
-                    },
-                    (_, 1) => HandType::HighCard,
-                    (_, _) => panic!("too many equal cards"),
-                }
+            match max_card {
+                (_, 5) => HandType::FiveOfAKind,
+                (_, 4) => HandType::FourOfAKind,
+                (card, 3) => match histogram.iter().find(|(c, q)| **c != card && **q == 2) {
+                    Some((_, 2)) => HandType::FullHouse,
+                    _ => HandType::ThreeOfAKind,
+                },
+                (card, 2) => match histogram.iter().find(|(c, q)| **c != card && **q == 2) {
+                    Some((_, 2)) => HandType::TwoPair,
+                    _ => HandType::OnePair,
+                },
+                (_, 1) => HandType::HighCard,
+                (_, _) => panic!("too many equal cards"),
             }
         }
     }
 }
 
-impl std::fmt::Debug for Hand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s: String = self.cards.iter().map(|c| format!("{c:?}")).collect();
-        write!(f, "{}", s)
-    }
-}
-
-impl PartialEq for Hand {
-    fn eq(&self, other: &Self) -> bool {
-        self.cards == other.cards
-    }
-}
-
-impl PartialOrd for Hand {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let a = self.get_type();
-        println!("{a:?}");
-        let b = other.get_type();
-        println!("{b:?}");
-        match a.partial_cmp(&b) {
-            Some(std::cmp::Ordering::Equal) => Some(
-                self.cards
-                    .iter()
-                    .zip(other.cards.iter())
-                    .fold(Ordering::Equal, fold_cmp_card),
-            ),
-            res => res,
-        }
-    }
-}
-
-impl FromStr for Hand {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parse_hand(s).ok_or(ParseError)
+fn cmp_hands(order: &str, a: &Hand, b: &Hand) -> Option<std::cmp::Ordering> {
+    let with_joker = order.starts_with("J");
+    let at = get_type(a, with_joker);
+    let bt = get_type(b, with_joker);
+    match at.partial_cmp(&bt) {
+        Some(std::cmp::Ordering::Equal) => Some(
+            a.cards
+                .iter()
+                .zip(b.cards.iter())
+                .fold(Ordering::Equal, |acc, x| fold_cmp_card(order, acc, x)),
+        ),
+        res => res,
     }
 }
 
@@ -170,9 +108,9 @@ fn parse(input: &str) -> Vec<(Hand, Bid)> {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
+    let order = "23456789TJQKA";
     let mut games = parse(input);
-    games.sort_unstable_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
-    return None;
+    games.sort_unstable_by(|(a, _), (b, _)| cmp_hands(order, a, b).unwrap());
     Some(
         games
             .iter()
@@ -183,11 +121,9 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
+    let order = "J23456789TQKA";
     let mut games = parse(input);
-    games.sort_unstable_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
-    for g in games.iter() {
-        println!("{g:?}");
-    }
+    games.sort_unstable_by(|(a, _), (b, _)| cmp_hands(order, a, b).unwrap());
     Some(
         games
             .iter()
@@ -216,19 +152,24 @@ mod tests {
     #[test]
     fn test_get_type() {
         assert_eq!(
-            parse_hand("JJJJJ").unwrap().get_type(),
+            get_type(&parse_hand("JJJJJ").unwrap(), true),
             HandType::FiveOfAKind
         );
         assert_eq!(
-            parse_hand("JJ958").unwrap().get_type(),
+            get_type(&parse_hand("JJ958").unwrap(), false),
+            HandType::OnePair
+        );
+        assert_eq!(
+            get_type(&parse_hand("JJ958").unwrap(), true),
             HandType::ThreeOfAKind
         );
     }
 
     #[test]
     fn test_cmp_hand() {
+        let order = "J23456789TQKA";
         let a = parse_hand("QQQJA").unwrap();
         let b = parse_hand("KTJJT").unwrap();
-        assert_eq!(a.partial_cmp(&b), Some(Ordering::Less));
+        assert_eq!(cmp_hands(order, &a, &b), Some(Ordering::Less));
     }
 }
