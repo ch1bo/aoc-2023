@@ -14,13 +14,23 @@ fn all_zeros(seq: &Vec<i32>) -> bool {
     seq.iter().all(|x| *x == 0)
 }
 
-fn extrapolate(seq: &Vec<i32>) -> i32 {
+fn extrapolate_next(seq: &Vec<i32>) -> i32 {
     let last = *seq.last().unwrap();
     let ds = derivates(seq);
     if all_zeros(&ds) {
         last
     } else {
-        last + extrapolate(&ds)
+        last + extrapolate_next(&ds)
+    }
+}
+
+fn extrapolate_prev(seq: &Vec<i32>) -> i32 {
+    let first = *seq.first().unwrap();
+    let ds = derivates(seq);
+    if all_zeros(&ds) {
+        first
+    } else {
+        first - extrapolate_prev(&ds)
     }
 }
 
@@ -29,15 +39,15 @@ pub fn part_one(input: &str) -> Option<i32> {
         .lines()
         .map(|l| l.split(' ').flat_map(|s| s.parse()).collect())
         .collect();
-    println!("{sequences:?}");
-    for s in sequences.iter() {
-        println!("{:?}", extrapolate(&s));
-    }
-    Some(sequences.iter().map(extrapolate).sum())
+    Some(sequences.iter().map(extrapolate_next).sum())
 }
 
 pub fn part_two(input: &str) -> Option<i32> {
-    None
+    let sequences: Vec<Vec<i32>> = input
+        .lines()
+        .map(|l| l.split(' ').flat_map(|s| s.parse()).collect())
+        .collect();
+    Some(sequences.iter().map(extrapolate_prev).sum())
 }
 
 #[cfg(test)]
@@ -58,6 +68,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(2));
     }
 }
